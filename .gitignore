@@ -1,0 +1,133 @@
+# =====================================================
+# Android / Gradle / Kotlin Project .gitignore
+# =====================================================
+
+# =====================================================
+# Gradle
+# =====================================================
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+# =====================================================
+# IDE - Android Studio / IntelliJ IDEA
+# =====================================================
+.idea/
+*.iml
+*.ipr
+*.iws
+.idea_modules/
+out/
+# Uncomment if you have task files you wish to keep
+# !.idea/tasks.xml
+# !.idea/gradle.xml
+# !.idea/dictionaries
+# !.idea/vcs.xml
+
+# =====================================================
+# Android Build Outputs
+# =====================================================
+*.apk
+*.ap_
+*.aab
+*.dex
+
+# =====================================================
+# Local Configuration
+# =====================================================
+local.properties
+keystore.properties
+signing.properties
+
+# =====================================================
+# Keystore Files (IMPORTANT: Never commit these!)
+# =====================================================
+*.jks
+*.keystore
+release.properties
+
+# =====================================================
+# Native / NDK
+# =====================================================
+obj/
+.cxx/
+*.so
+# Uncomment if you have prebuilt native libs committed
+# !app/src/main/jniLibs/**/*.so
+
+# =====================================================
+# Logs & Crash Reports
+# =====================================================
+*.log
+crash-reports/
+
+# =====================================================
+# OS Generated Files
+# =====================================================
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Linux
+*~
+
+# =====================================================
+# Test Outputs
+# =====================================================
+/coverage/
+.jacoco/
+test-results/
+
+# =====================================================
+# Kotlin
+# =====================================================
+.kotlin/
+
+# =====================================================
+# Temporary Files
+# =====================================================
+*.tmp
+*.temp
+*.swp
+*.bak
+
+# =====================================================
+# Model Files (Optional - Large binary files)
+# =====================================================
+*.tflite
+*.bin
+*.gguf
+*.onnx
+*.weights
+*.mlmodel
+*.mlmodelc
+
+
+# =====================================================
+# Environment & Secrets (IMPORTANT!)
+# =====================================================
+.env
+.env.local
+.env.*.local
+secrets/
+credentials/
+api_keys.txt
+
+# =====================================================
+# Temp / Design / Etc
+# =====================================================
+log.txt
+*.resolved
+主页/
+加载模型页面/
+设置/

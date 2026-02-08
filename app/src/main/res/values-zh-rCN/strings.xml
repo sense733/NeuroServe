@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">NeuroServe</string>
+    
+    <!-- Navigation -->
+    <string name="nav_dashboard">仪表盘</string>
+    <string name="nav_playground">对话</string>
+    <string name="nav_models">模型库</string>
+    
+    <!-- Settings Screen -->
+    <string name="settings_title">设置</string>
+    
+    <!-- General Section -->
+    <string name="section_general">常规</string>
+    <string name="pref_server_name">服务器名称</string>
+    <string name="pref_language">语言</string>
+    <string name="dialog_language_title">选择语言</string>
+    <string name="lang_system">跟随系统</string>
+    <string name="lang_en">English</string>
+    <string name="lang_zh">简体中文</string>
+    
+    <!-- Restart Dialog -->
+    <string name="dialog_restart_title">需要重启</string>
+    <string name="dialog_restart_message">更改语言设置需要重启应用才能生效。</string>
+    <string name="btn_restart_now">立即重启</string>
+    
+    <!-- Network Section -->
+    <string name="section_network">网络与安全</string>
+    <string name="pref_http_port">服务端口</string>
+    <string name="pref_lan_access">允许局域网访问</string>
+    <string name="pref_lan_access_desc">允许外部设备连接</string>
+    <string name="pref_api_auth">开启 API 鉴权</string>
+    <string name="pref_api_auth_desc">请求时需要 API 密钥</string>
+    <string name="pref_api_key">API 密钥</string>
+    
+    <!-- Inference Section -->
+    <string name="section_inference">推理引擎</string>
+    <string name="pref_hardware">硬件加速</string>
+    <string name="pref_threads">CPU 线程数</string>
+    <string name="pref_context">上下文长度</string>
+    <string name="pref_model_path">默认模型</string>
+    <string name="pref_model_none">未选择</string>
+    
+    <!-- System Section -->
+    <string name="section_system">系统与存储</string>
+    <string name="pref_wakelock">保持 CPU 唤醒</string>
+    <string name="pref_wakelock_desc">防止推理时设备休眠</string>
+    <string name="pref_battery_opt">电池优化</string>
+    <string name="pref_battery_opt_desc">点击忽略（后台运行必需）</string>
+    
+    <!-- About Section -->
+    <string name="section_about">关于</string>
+    <string name="pref_version">版本</string>
+    
+    <!-- Common Actions -->
+    <string name="action_confirm">确认</string>
+    <string name="action_cancel">取消</string>
+    <string name="action_copy">复制</string>
+    <string name="action_regenerate">重新生成</string>
+    <string name="action_back">返回</string>
+    <string name="toast_api_key_copied">API 密钥已复制</string>
+    
+    <!-- Notifications -->
+    <string name="notification_channel_name">推理服务</string>
+    <string name="notification_channel_description">AI 推理服务运行状态</string>
+    
+    <!-- Dashboard Screen -->
+    <string name="dashboard_settings">设置</string>
+    <string name="status_online">在线</string>
+    <string name="status_offline">离线</string>
+    <string name="label_uptime">运行时间</string>
+    <string name="label_active_clients">活跃连接</string>
+    <string name="server_on">服务运行中</string>
+    <string name="server_off">服务已停止</string>
+    <string name="status_running">正常运行</string>
+    <string name="status_stopped">已停止</string>
+    <string name="label_system_status">系统状态</string>
+    <string name="label_speed">速度</string>
+    <string name="label_app_ram">内存</string>
+    <string name="label_temp">温度</string>
+    
+    <!-- Chat Screen -->
+    <string name="chat_placeholder">输入消息…</string>
+    <string name="chat_send">发送</string>
+    <string name="chat_typing">正在输入…</string>
+    
+    <!-- Extracted -->
+    <string name="initial_uptime">00:00:00</string>
+    <string name="initial_ip">未知</string>
+    <string name="stopped_uptime">--:--:--</string>
+    <string name="app_version">v0.1.0</string>
+    <string name="format_size_mb">%.1f MB</string>
+    <string name="format_speed">%.1f tok/s</string>
+    <string name="toast_import_success">导入成功: %s</string>
+    <string name="toast_import_failed">导入失败: %s</string>
+    <string name="msg_error_prefix">错误: %s</string>
+    <string name="unit_tok_s">tok/s</string>
+    <string name="unit_celsius">°C</string>
+    <string name="desc_power_button">电源</string>
+    <string name="dialog_no_options">无可用选项</string>
+    <!-- Model Hub -->
+    <string name="title_model_hub">模型库</string>
+    <string name="msg_no_models">暂无模型</string>
+    <string name="msg_import_hint">导入 .tflite 模型开始使用</string>
+    <string name="desc_import_model">导入模型</string>
+    <string name="msg_importing">正在导入模型...</string>
+    <string name="desc_active_model">已激活</string>
+    <string name="label_ai">AI</string>
+</resources>
