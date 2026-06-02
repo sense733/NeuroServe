@@ -1,259 +1,181 @@
 package com.neuroserve.engine
 
 import android.content.Context
+import android.util.Log
+import com.google.ai.edge.litertlm.Engine
+import com.google.ai.edge.litertlm.EngineConfig
+import com.google.ai.edge.litertlm.Backend
+import com.google.ai.edge.litertlm.Conversation
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
-import kotlinx.coroutines.isActive
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
-import org.tensorflow.lite.Interpreter
-import org.tensorflow.lite.InterpreterApi
-import org.tensorflow.lite.gpu.GpuDelegate
 import java.io.Closeable
-import java.io.File
-import java.io.FileInputStream
-import java.nio.ByteBuffer
-import java.nio.ByteOrder
-import java.nio.MappedByteBuffer
-import java.nio.channels.FileChannel
+import java.util.concurrent.atomic.AtomicBoolean
+import kotlinx.coroutines.runBlocking
 import javax.inject.Inject
 import javax.inject.Singleton
-import kotlin.coroutines.coroutineContext
+import com.neuroserve.server.dto.ChatMessage
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
-/**
- * LiteRT + GPU 推理引擎。NPU 优先 (QNN Delegate)，Fallback 到 GPU/CPU。
- */
 @Singleton
-class LiteRTEngine @Inject constructor(
+class LiteRtEngine @Inject constructor(
     @ApplicationContext private val context: Context,
-    private val tokenizer: Tokenizer
+    private val settingsRepository: com.neuroserve.data.SettingsRepository
 ) : InferenceEngine, Closeable {
 
-    override val name: String = "LiteRT-NPU"
-    override val priority: Int = 1
+    override val name: String = "LiteRT-LM"
+    override val priority: Int = 0
 
-    private var interpreter: InterpreterApi? = null
-    private var gpuDelegate: GpuDelegate? = null
-    private var modelBuffer: MappedByteBuffer? = null
-    
+    private var engine: Engine? = null
+    private var activeConversation: Conversation? = null
+    private var activeHistory: List<ChatMessage> = emptyList()
+    private val engineMutex = Mutex()
     @Volatile private var isModelLoaded = false
-    @Volatile private var shouldStopGeneration = false
-    
-    private var currentAccelerator = AcceleratorType.CPU
+    private var currentMeta: ModelMeta? = null
+    private val stopRequested = AtomicBoolean(false)
+    private var generationJob: Job? = null
 
     companion object {
-        private const val MAX_NEW_TOKENS = 2048
-        private const val MAX_SEQ_LENGTH = 2048
-        private const val DEFAULT_TEMPERATURE = 0.7f
-        private const val TAG = "LiteRTEngine"
-        
-        // Signature/tensor names - adjust per model
-        private const val SIGNATURE_GENERATE = "serving_default"
-        private const val INPUT_IDS = "input_ids"
-        private const val INPUT_ATTENTION_MASK = "attention_mask"
-        private const val OUTPUT_LOGITS = "logits"
+        private const val TAG = "LiteRtEngine"
     }
 
-    enum class AcceleratorType { NPU, GPU, CPU }
+    override suspend fun isAvailable(): Boolean = true
 
-    override suspend fun isAvailable(): Boolean = withContext(Dispatchers.IO) {
-        try {
-            val gpuAvailable = try {
-                GpuDelegate().close()
-                true
-            } catch (e: Exception) { false }
-            
-            android.util.Log.i(TAG, "GPU Delegate available: $gpuAvailable")
-            true // CPU always available
-        } catch (e: Exception) {
-            android.util.Log.e(TAG, "Failed to check accelerator availability", e)
-            true
-        }
-    }
-
-    override suspend fun loadModel(modelPath: String): Unit = withContext(Dispatchers.IO) {
+    override suspend fun loadModel(meta: ModelMeta): Unit = withContext(Dispatchers.IO) {
         if (isModelLoaded) {
-            android.util.Log.w(TAG, "Model already loaded, unloading first")
+            Log.w(TAG, "Model already loaded, unloading first")
             unloadModel()
         }
-        
-        // MVP: mock:// protocol skips real model loading
-        if (modelPath.startsWith("mock://")) {
-            android.util.Log.i(TAG, "MVP Mode: Using mock model")
-            isModelLoaded = true
-            currentAccelerator = AcceleratorType.CPU
-            return@withContext
-        }
-        
-        try {
-            android.util.Log.i(TAG, "Loading model from: $modelPath")
-            
-            modelBuffer = if (modelPath.startsWith("assets://")) {
-                loadModelFromAssets(modelPath.removePrefix("assets://"))
-            } else {
-                loadModelFromFile(modelPath)
-            }
-            
-            val options = InterpreterApi.Options()
-            currentAccelerator = configureAccelerators(options)
-            interpreter = InterpreterApi.create(modelBuffer!!, options)
-            
-            isModelLoaded = true
-            android.util.Log.i(TAG, "Model loaded with $currentAccelerator acceleration")
-            
-        } catch (e: Exception) {
-            android.util.Log.e(TAG, "Failed to load model", e)
-            // MVP fallback: allow mock generation even on load failure
-            isModelLoaded = true
-            currentAccelerator = AcceleratorType.CPU
-        }
-    }
 
-    /** NPU > GPU > CPU fallback chain */
-    private fun configureAccelerators(options: InterpreterApi.Options): AcceleratorType {
-        // TODO: Integrate QNN Delegate when stable AIDL available
-        
-        try {
-            gpuDelegate = GpuDelegate()
-            options.addDelegate(gpuDelegate!!)
-            android.util.Log.i(TAG, "GPU Delegate configured")
-            return AcceleratorType.GPU
-        } catch (e: Exception) {
-            android.util.Log.w(TAG, "GPU Delegate unavailable: ${e.message}")
+        Log.i(TAG, "Loading LiteRT-LM model: ${meta.displayName}")
+        Log.i(TAG, "Model path: ${meta.modelPath}")
+
+        val nativeLibDir = context.applicationInfo.nativeLibraryDir
+        Log.i(TAG, "Native lib dir: $nativeLibDir")
+
+        val settings = settingsRepository.settingsFlow.first()
+        currentAccelerator = when (settings.hardwareAccel) {
+            com.neuroserve.data.HardwareAccel.NPU -> AcceleratorType.NPU
+            com.neuroserve.data.HardwareAccel.GPU -> AcceleratorType.GPU
+            com.neuroserve.data.HardwareAccel.CPU -> AcceleratorType.CPU
         }
-        
-        android.util.Log.i(TAG, "Using CPU fallback")
-        return AcceleratorType.CPU
+        val engineBackend = when (settings.hardwareAccel) {
+            com.neuroserve.data.HardwareAccel.NPU -> {
+                try {
+                    // We do not force load QNN libraries via System.loadLibrary anymore.
+                    // The LiteRtDispatch_Qualcomm.so will dlopen them from the nativeLibraryDir automatically.
+                } catch (e: Exception) {
+                    Log.w(TAG, "Failed to set up NPU environment or load QNN libraries", e)
+                }
+                Backend.NPU(nativeLibraryDir = nativeLibDir)
+            }
+            com.neuroserve.data.HardwareAccel.GPU -> Backend.GPU()
+            com.neuroserve.data.HardwareAccel.CPU -> Backend.CPU()
+        }
+
+        val config = EngineConfig(
+            modelPath = meta.modelPath,
+            backend = engineBackend
+        )
+
+        val newEngine = Engine(config)
+        newEngine.initialize()
+
+        engine = newEngine
+        isModelLoaded = true
+        currentMeta = meta
+        Log.i(TAG, "Model loaded: ${meta.displayName}")
     }
 
     override suspend fun unloadModel(): Unit = withContext(Dispatchers.IO) {
+        performUnload()
+    }
+
+    private fun performUnload() {
         try {
-            interpreter?.close()
-            gpuDelegate?.close()
+            activeConversation?.close()
+            engine?.close()
         } catch (e: Exception) {
-            android.util.Log.e(TAG, "Error during model unload", e)
+            Log.e(TAG, "Error closing LiteRT-LM engine", e)
         } finally {
-            interpreter = null
-            gpuDelegate = null
-            modelBuffer = null
+            activeConversation = null
+            engine = null
             isModelLoaded = false
-            currentAccelerator = AcceleratorType.CPU
+            currentMeta = null
+            activeHistory = emptyList()
         }
     }
 
-    override suspend fun generate(prompt: String): Flow<String> = flow {
-        val interp = interpreter 
-            ?: throw IllegalStateException("Model not loaded. Call loadModel() first.")
-        
-        shouldStopGeneration = false
-        
-        val inputTokenIds = tokenizer.encode(prompt)
-        val generatedTokens = inputTokenIds.toMutableList()
-        var tokenCount = 0
-        
-        while (tokenCount < MAX_NEW_TOKENS && 
-               generatedTokens.size < MAX_SEQ_LENGTH &&
-               coroutineContext.isActive && 
-               !shouldStopGeneration) {
-            
-            val currentSeqLength = generatedTokens.size
-            val inputIdsBuffer = prepareInputIdsBuffer(generatedTokens)
-            val attentionMaskBuffer = prepareAttentionMaskBuffer(currentSeqLength)
-            val outputLogitsBuffer = prepareOutputLogitsBuffer()
-            
-            val inputs: Map<String, Any> = mapOf(
-                INPUT_IDS to inputIdsBuffer,
-                INPUT_ATTENTION_MASK to attentionMaskBuffer
-            )
-            val outputs: Map<String, Any> = mapOf(OUTPUT_LOGITS to outputLogitsBuffer)
-            
-            withContext(Dispatchers.Default) {
-                (interp as? Interpreter)?.runSignature(inputs, outputs, SIGNATURE_GENERATE)
-                    ?: throw IllegalStateException("Interpreter mismatch")
-            }
-            
-            val nextTokenId = sampleNextToken(outputLogitsBuffer, currentSeqLength - 1)
-            
-            if (nextTokenId == tokenizer.eosTokenId) break
-            
-            generatedTokens.add(nextTokenId)
-            tokenCount++
-            
-            val tokenText = tokenizer.decodeToken(nextTokenId)
-            if (tokenText.isNotEmpty()) emit(tokenText)
+    override suspend fun generate(messages: List<ChatMessage>, config: InferenceConfig?): Flow<String> {
+        val eng = engine
+            ?: throw IllegalStateException("Model not loaded")
+
+        stopRequested.set(false)
+
+        if (config != null) {
+            Log.d(TAG, "LiteRT-LM backend does not support dynamic inference parameters; config ignored")
         }
-        
-        android.util.Log.i(TAG, "Generation completed: $tokenCount tokens, accelerator: $currentAccelerator")
-        
-    }.flowOn(Dispatchers.Default)
+
+        return flow {
+            engineMutex.withLock {
+                val isContinuation = messages.size > 1 && 
+                    messages.subList(0, messages.size - 1) == activeHistory
+                
+                val promptToSend = if (isContinuation) {
+                    messages.last().content
+                } else {
+                    activeConversation?.close()
+                    activeConversation = eng.createConversation()
+                    buildPromptFromMessages(messages)
+                }
+                
+                val conv = activeConversation ?: throw IllegalStateException("Conversation is null")
+                val assistantReply = StringBuilder()
+                
+                conv.sendMessageAsync(promptToSend).collect { token ->
+                    if (stopRequested.get()) return@collect
+                    val tokenStr = token.toString()
+                    assistantReply.append(tokenStr)
+                    emit(tokenStr)
+                }
+                
+                activeHistory = messages + ChatMessage(role = "assistant", content = assistantReply.toString())
+            }
+        }.flowOn(Dispatchers.IO)
+    }
+
+    private fun buildPromptFromMessages(messages: List<ChatMessage>): String {
+        val sb = StringBuilder()
+        for (msg in messages) {
+            sb.append("<|im_start|>").append(msg.role).append("\n")
+            sb.append(msg.content).append("<|im_end|>\n")
+        }
+        sb.append("<|im_start|>assistant\n")
+        return sb.toString()
+    }
 
     override fun stopGeneration() {
-        shouldStopGeneration = true
+        stopRequested.set(true)
     }
 
-    private fun prepareInputIdsBuffer(tokenIds: List<Int>): ByteBuffer {
-        return ByteBuffer.allocateDirect(tokenIds.size * 4).apply {
-            order(ByteOrder.nativeOrder())
-            tokenIds.forEach { putInt(it) }
-            rewind()
-        }
-    }
+    override fun isLoaded(): Boolean = isModelLoaded
 
-    private fun prepareAttentionMaskBuffer(seqLength: Int): ByteBuffer {
-        return ByteBuffer.allocateDirect(seqLength * 4).apply {
-            order(ByteOrder.nativeOrder())
-            repeat(seqLength) { putInt(1) }
-            rewind()
-        }
-    }
+    private var currentAccelerator: AcceleratorType = AcceleratorType.GPU
 
-    private fun prepareOutputLogitsBuffer(): ByteBuffer {
-        val vocabSize = tokenizer.vocabSize
-        return ByteBuffer.allocateDirect(MAX_SEQ_LENGTH * vocabSize * 4).apply {
-            order(ByteOrder.nativeOrder())
-        }
-    }
+    override fun getCurrentAccelerator(): AcceleratorType = currentAccelerator
 
-    /** Greedy decoding: select token with max logit */
-    private fun sampleNextToken(logitsBuffer: ByteBuffer, lastPosition: Int): Int {
-        val vocabSize = tokenizer.vocabSize
-        logitsBuffer.position(lastPosition * vocabSize * 4)
-        
-        var maxIdx = 0
-        var maxVal = Float.NEGATIVE_INFINITY
-        
-        repeat(vocabSize) { i ->
-            val logit = logitsBuffer.getFloat()
-            if (logit > maxVal) {
-                maxVal = logit
-                maxIdx = i
-            }
-        }
-        
-        logitsBuffer.rewind()
-        return maxIdx
-    }
-
-    private fun loadModelFromAssets(assetPath: String): MappedByteBuffer {
-        val fd = context.assets.openFd(assetPath)
-        return FileInputStream(fd.fileDescriptor).channel.map(
-            FileChannel.MapMode.READ_ONLY, fd.startOffset, fd.declaredLength
-        )
-    }
-
-    private fun loadModelFromFile(filePath: String): MappedByteBuffer {
-        val file = File(filePath)
-        return FileInputStream(file).channel.map(
-            FileChannel.MapMode.READ_ONLY, 0, file.length()
-        )
-    }
-
-    fun getCurrentAccelerator(): AcceleratorType = currentAccelerator
-    fun isLoaded(): Boolean = isModelLoaded
+    override fun getCurrentModelMeta(): ModelMeta? = currentMeta
 
     override fun close() {
-        kotlinx.coroutines.runBlocking { unloadModel() }
+        runBlocking(Dispatchers.IO) {
+            performUnload()
+        }
     }
 }

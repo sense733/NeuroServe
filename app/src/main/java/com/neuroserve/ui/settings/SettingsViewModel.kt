@@ -34,6 +34,8 @@ data class SettingsUiState(
     val cpuThreads: Int = 4,
     val contextWindow: Int = 4096,
     val defaultModelPath: String? = null,
+    val temperature: Float = 0.8f,
+    val topK: Int = 40,
     // System
     val keepCpuAwake: Boolean = false,
     // UI State
@@ -108,6 +110,14 @@ class SettingsViewModel @Inject constructor(
         repository.setDefaultModelPath(path)
     }
 
+    fun setTemperature(temp: Float) = viewModelScope.launch {
+        repository.setTemperature(temp)
+    }
+
+    fun setTopK(k: Int) = viewModelScope.launch {
+        repository.setTopK(k)
+    }
+
     fun toggleKeepCpuAwake(enabled: Boolean) = viewModelScope.launch {
         repository.setKeepCpuAwake(enabled)
     }
@@ -141,6 +151,8 @@ class SettingsViewModel @Inject constructor(
         cpuThreads = cpuThreads,
         contextWindow = contextWindow,
         defaultModelPath = defaultModelPath,
+        temperature = temperature,
+        topK = topK,
         keepCpuAwake = keepCpuAwake
     )
 }

@@ -40,6 +40,8 @@
     <string name="pref_context">Context Window</string>
     <string name="pref_model_path">Default Model</string>
     <string name="pref_model_none">None selected</string>
+    <string name="pref_temperature">Temperature</string>
+    <string name="pref_top_k">Top-K</string>
     
     <!-- System Section -->
     <string name="section_system">System</string>

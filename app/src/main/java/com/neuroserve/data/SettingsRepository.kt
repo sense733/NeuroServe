@@ -28,13 +28,15 @@ data class SettingsData(
     val cpuThreads: Int = 4,
     val contextWindow: Int = 4096,
     val defaultModelPath: String? = null,
+    val temperature: Float = 0.8f,
+    val topK: Int = 40,
     // System
     val keepCpuAwake: Boolean = false
 )
 
 @Singleton
 class SettingsRepository @Inject constructor(
-    @ApplicationContext private val context: Context
+    @param:ApplicationContext private val context: Context
 ) {
     private val dataStore = context.dataStore
 
@@ -52,6 +54,8 @@ class SettingsRepository @Inject constructor(
             cpuThreads = prefs[SettingsKeys.CPU_THREADS] ?: 4,
             contextWindow = prefs[SettingsKeys.CONTEXT_WINDOW] ?: 4096,
             defaultModelPath = prefs[SettingsKeys.DEFAULT_MODEL_PATH],
+            temperature = prefs[SettingsKeys.TEMPERATURE] ?: 0.8f,
+            topK = prefs[SettingsKeys.TOP_K] ?: 40,
             keepCpuAwake = prefs[SettingsKeys.KEEP_CPU_AWAKE] ?: false
         )
     }
@@ -71,6 +75,9 @@ class SettingsRepository @Inject constructor(
         if (path != null) it[SettingsKeys.DEFAULT_MODEL_PATH] = path 
         else it.remove(SettingsKeys.DEFAULT_MODEL_PATH)
     }
+
+    suspend fun setTemperature(temp: Float) = dataStore.edit { it[SettingsKeys.TEMPERATURE] = temp }
+    suspend fun setTopK(k: Int) = dataStore.edit { it[SettingsKeys.TOP_K] = k }
 
     suspend fun setKeepCpuAwake(enabled: Boolean) = dataStore.edit { it[SettingsKeys.KEEP_CPU_AWAKE] = enabled }
 

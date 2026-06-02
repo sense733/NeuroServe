@@ -47,7 +47,6 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.res.stringResource
 import com.neuroserve.R
 import com.neuroserve.data.HardwareAccel
@@ -62,9 +61,10 @@ fun SettingsScreen(
     onBackClick: () -> Unit,
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
     val scrollState = rememberScrollState()
+    @Suppress("DEPRECATION")
     val clipboardManager = LocalClipboardManager.current
     val scope = rememberCoroutineScope()
 
@@ -183,6 +183,7 @@ fun SettingsScreen(
                     }
                 }
             }
+// ... (rest of the file content)
 
             // -- Inference Section --
             SettingsGroup(title = stringResource(R.string.section_inference)) {
@@ -204,6 +205,36 @@ fun SettingsScreen(
                         onValueChange = { viewModel.setCpuThreads(it.toInt()) },
                         valueRange = 1f..viewModel.maxSupportedThreads.toFloat(),
                         steps = viewModel.maxSupportedThreads - 2
+                    )
+                }
+                
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f))
+
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        text = "${stringResource(R.string.pref_temperature)}: %.1f".format(uiState.temperature),
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                    Slider(
+                        value = uiState.temperature,
+                        onValueChange = { viewModel.setTemperature(it) },
+                        valueRange = 0.0f..2.0f,
+                        steps = 19
+                    )
+                }
+
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f))
+
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        text = "${stringResource(R.string.pref_top_k)}: ${uiState.topK}",
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                    Slider(
+                        value = uiState.topK.toFloat(),
+                        onValueChange = { viewModel.setTopK(it.toInt()) },
+                        valueRange = 1f..100f,
+                        steps = 98
                     )
                 }
                 

@@ -34,6 +34,8 @@ sealed class Screen(val route: String, val titleResId: Int, val icon: androidx.c
 @Composable
 fun HomeScreen(
     viewModel: MainViewModel,
+    chatViewModel: ChatViewModel,
+    modelHubViewModel: ModelHubViewModel,
     modifier: Modifier = Modifier
 ) {
     val navController = rememberNavController()
@@ -81,10 +83,10 @@ fun HomeScreen(
                 )
             }
             composable(Screen.Chat.route) {
-                ChatScreen(viewModel)
+                ChatScreen(chatViewModel)
             }
             composable(Screen.ModelHub.route) {
-                ModelHubScreen(viewModel)
+                ModelHubScreen(modelHubViewModel)
             }
             composable("settings") {
                 com.neuroserve.ui.settings.SettingsScreen(

@@ -29,6 +29,8 @@ import javax.inject.Inject
 class MainActivity : AppCompatActivity() {
     
     private val viewModel: MainViewModel by viewModels()
+    private val chatViewModel: ChatViewModel by viewModels()
+    private val modelHubViewModel: ModelHubViewModel by viewModels()
     
     @Inject
     lateinit var settingsRepository: SettingsRepository
@@ -65,7 +67,11 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
 
-                HomeScreen(viewModel = viewModel)
+                HomeScreen(
+                    viewModel = viewModel,
+                    chatViewModel = chatViewModel,
+                    modelHubViewModel = modelHubViewModel
+                )
             }
         }
     }

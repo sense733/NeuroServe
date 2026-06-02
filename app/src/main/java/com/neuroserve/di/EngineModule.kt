@@ -1,26 +1,23 @@
 package com.neuroserve.di
 
 import com.neuroserve.engine.InferenceEngine
-import com.neuroserve.engine.LiteRTEngine
-import com.neuroserve.engine.SimpleMockTokenizer
-import com.neuroserve.engine.Tokenizer
+import com.neuroserve.engine.LiteRtEngine
+import com.neuroserve.engine.NexaEngine
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
-import javax.inject.Singleton
+import dagger.multibindings.IntoSet
 
 @Module
 @InstallIn(SingletonComponent::class)
 abstract class EngineModule {
 
     @Binds
-    @Singleton
-    abstract fun bindInferenceEngine(impl: LiteRTEngine): InferenceEngine
+    @IntoSet
+    abstract fun bindNexaEngineIntoSet(impl: NexaEngine): InferenceEngine
 
-    // TODO: Replace SimpleMockTokenizer with BPE/SentencePiece in production
     @Binds
-    @Singleton
-    @Suppress("DEPRECATION")
-    abstract fun bindTokenizer(impl: SimpleMockTokenizer): Tokenizer
+    @IntoSet
+    abstract fun bindLiteRtEngineIntoSet(impl: LiteRtEngine): InferenceEngine
 }

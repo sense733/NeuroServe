@@ -9,7 +9,7 @@
 
 **Android 端侧 LLM 推理服务**
 
-NeuroServe 是一个运行在 Android 平台上的系统级 AI 推理服务。它利用 Google **LiteRT** (前身为 TensorFlow Lite) 驱动 **Snapdragon 8 Elite (SM8750) Hexagon NPU**，提供本地大语言模型 (LLM) 推理能力。它暴露一个 **OpenAI 兼容的 HTTP API**，允许其他应用（如 Chatbox, Tasker, Obsidian）无需依赖云端服务即可使用端侧 AI 能力。
+NeuroServe 是一个运行在 Android 平台上的系统级 AI 推理服务。它利用 Google **LiteRT** 驱动 **Snapdragon 8 Elite (SM8750) Hexagon NPU**，提供本地大语言模型 (LLM) 推理能力。它暴露一个 **OpenAI 兼容的 HTTP API**，允许其他应用（如 Chatbox, Tasker, Obsidian）无需依赖云端服务即可使用端侧 AI 能力。
 
 ## 主要特性
 

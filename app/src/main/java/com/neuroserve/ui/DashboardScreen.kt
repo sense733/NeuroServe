@@ -46,6 +46,7 @@ fun DashboardScreen(
     val lanIp by viewModel.lanIp.collectAsState()
     val uptime by viewModel.uptime.collectAsState()
     val activeModelName by viewModel.activeModelName.collectAsState()
+    val activeClients by viewModel.activeClients.collectAsState()
     
     // Real system metrics from SystemMonitor
     val appMemoryInfo by viewModel.systemMonitor.appMemoryInfo.collectAsState()
@@ -53,13 +54,6 @@ fun DashboardScreen(
     
     LaunchedEffect(Unit) {
         viewModel.updateLanIp(context)
-        viewModel.initSystemMonitor(context)
-    }
-    
-    DisposableEffect(Unit) {
-        onDispose {
-            viewModel.cleanupSystemMonitor(context)
-        }
     }
 
     val surfaceContainerLow = MaterialTheme.colorScheme.surfaceContainerLow
@@ -117,9 +111,9 @@ fun DashboardScreen(
                 ) {
                     // Online Badge
                     Surface(
-                        color = Color(0xFFDCFCE7), // green-100
+                        color = if (isServiceRunning) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
                         shape = RoundedCornerShape(50),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFBBF7D0)) // green-200
+                        border = androidx.compose.foundation.BorderStroke(1.dp, if (isServiceRunning) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant)
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
@@ -128,13 +122,13 @@ fun DashboardScreen(
                             Box(
                                 modifier = Modifier
                                     .size(8.dp)
-                                    .background(Color(0xFF16A34A), CircleShape) // green-600
+                                    .background(if (isServiceRunning) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant, CircleShape)
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
                                 text = if (isServiceRunning) stringResource(R.string.status_online) else stringResource(R.string.status_offline),
                                 style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                                color = if (isServiceRunning) Color(0xFF166534) else Color.Gray
+                                color = if (isServiceRunning) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
@@ -143,7 +137,7 @@ fun DashboardScreen(
                     Surface(
                         color = MaterialTheme.colorScheme.surface,
                         shape = RoundedCornerShape(8.dp),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFF3F4F6)) // gray-100
+                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
@@ -159,7 +153,7 @@ fun DashboardScreen(
                             Text(
                                 text = if (isServiceRunning) lanIp else "N/A",
                                 style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
-                                color = Color(0xFF374151) // gray-700
+                                color = MaterialTheme.colorScheme.onSurface
                             )
                         }
                     }
@@ -179,7 +173,7 @@ fun DashboardScreen(
                     )
                     StatusItem(
                         label = stringResource(R.string.label_active_clients),
-                        value = "0",
+                        value = activeClients.toString(),
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -202,7 +196,7 @@ fun DashboardScreen(
                 
                 val buttonColor by androidx.compose.animation.animateColorAsState(
                     targetValue = if (isServiceRunning) 
-                        Color(0xFF4CAF50) // Green 500
+                        MaterialTheme.colorScheme.primary
                     else 
                         MaterialTheme.colorScheme.surfaceContainerHigh,
                     label = "ButtonColor"
@@ -271,7 +265,7 @@ fun DashboardScreen(
                                 modifier = Modifier
                                     .size(8.dp)
                                     .background(
-                                        if (running) Color(0xFF4CAF50) else MaterialTheme.colorScheme.onSurfaceVariant, 
+                                        if (running) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant, 
                                         CircleShape
                                     )
                             )
@@ -306,7 +300,7 @@ fun DashboardScreen(
                 label = stringResource(R.string.label_speed),
                 value = if (inferenceSpeed.isNotEmpty()) inferenceSpeed else "--",
                 unit = stringResource(R.string.unit_tok_s),
-                color = Color(0xFF4F46E5),
+                color = MaterialTheme.colorScheme.primary,
                 progress = 0f,
                 modifier = Modifier.weight(1f)
             )
@@ -314,7 +308,7 @@ fun DashboardScreen(
                 label = stringResource(R.string.label_app_ram),
                 value = appMemoryInfo.displayText,
                 unit = "",
-                color = Color(0xFF0D9488),
+                color = MaterialTheme.colorScheme.secondary,
                 progress = 0f,
                 modifier = Modifier.weight(1f)
             )
@@ -322,7 +316,7 @@ fun DashboardScreen(
                 label = stringResource(R.string.label_temp),
                 value = "%.0f".format(batteryTemperature),
                 unit = stringResource(R.string.unit_celsius),
-                color = Color(0xFFF97316),
+                color = MaterialTheme.colorScheme.tertiary,
                 progress = ((batteryTemperature - 20f) / 40f).coerceIn(0f, 1f),
                 modifier = Modifier.weight(1f)
             )
@@ -370,7 +364,7 @@ fun MetricCard(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLowest),
         shape = RoundedCornerShape(16.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
-        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFF3F4F6)), // Light border
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
         modifier = modifier
     ) {
         Column(

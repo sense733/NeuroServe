@@ -28,12 +28,13 @@ import com.neuroserve.R
 
 @Composable
 fun ModelHubScreen(
-    viewModel: MainViewModel,
+    viewModel: ModelHubViewModel,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
     val modelList by viewModel.modelList.collectAsState()
     val isImporting by viewModel.isImporting.collectAsState()
+    val importProgress by viewModel.importProgress.collectAsState()
     val activeModelName by viewModel.activeModelName.collectAsState()
     
     // Refresh list on entry
@@ -142,8 +143,18 @@ fun ModelHubScreen(
                         modifier = Modifier.padding(24.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        CircularProgressIndicator()
-                        Spacer(modifier = Modifier.height(16.dp))
+                        if (importProgress >= 0f) {
+                            LinearProgressIndicator(
+                                progress = { importProgress },
+                                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text("${(importProgress * 100).toInt()}%")
+                            Spacer(modifier = Modifier.height(8.dp))
+                        } else {
+                            CircularProgressIndicator()
+                            Spacer(modifier = Modifier.height(16.dp))
+                        }
                         Text(stringResource(R.string.msg_importing))
                     }
                 }
@@ -154,7 +165,7 @@ fun ModelHubScreen(
 
 @Composable
 fun ModelItem(
-    model: MainViewModel.ModelInfo,
+    model: com.neuroserve.data.ModelInfo,
     isActive: Boolean,
     onClick: () -> Unit,
     onDelete: () -> Unit
@@ -191,11 +202,27 @@ fun ModelItem(
                     maxLines = 1,
                     overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                 )
-                Text(
-                    text = model.size,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = model.size,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = model.formatLabel,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (model.formatLabel == "NPU") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
+                        modifier = Modifier
+                            .background(
+                                color = if (model.formatLabel == "NPU") MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh,
+                                shape = RoundedCornerShape(4.dp)
+                            )
+                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                    )
+                }
             }
             
             if (isActive) {

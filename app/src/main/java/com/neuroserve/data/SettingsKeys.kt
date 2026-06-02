@@ -1,6 +1,7 @@
 package com.neuroserve.data
 
 import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 
@@ -20,6 +21,8 @@ object SettingsKeys {
     val CPU_THREADS = intPreferencesKey("cpu_threads")
     val CONTEXT_WINDOW = intPreferencesKey("context_window")
     val DEFAULT_MODEL_PATH = stringPreferencesKey("default_model_path")
+    val TEMPERATURE = floatPreferencesKey("temperature")
+    val TOP_K = intPreferencesKey("top_k")
 
     // System
     val KEEP_CPU_AWAKE = booleanPreferencesKey("keep_cpu_awake")

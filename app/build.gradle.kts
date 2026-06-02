@@ -10,6 +10,7 @@ plugins {
 android {
     namespace = "com.neuroserve"
     compileSdk = libs.versions.compileSdk.get().toInt()
+    // buildToolsVersion = "35.0.0" // Let AGP decide
 
     defaultConfig {
         applicationId = "com.neuroserve"
@@ -19,6 +20,10 @@ android {
         versionName = "0.1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        
+        ndk {
+            abiFilters.add("arm64-v8a")
+        }
     }
 
     buildTypes {
@@ -45,6 +50,7 @@ android {
         jvmTarget = "17"
     }
 
+
     buildFeatures {
         compose = true
         buildConfig = true
@@ -55,6 +61,9 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
             excludes += "/META-INF/INDEX.LIST"
             excludes += "/META-INF/io.netty.versions.properties"
+        }
+        jniLibs {
+            useLegacyPackaging = true
         }
     }
 }
@@ -97,9 +106,15 @@ dependencies {
     implementation(libs.bundles.ktor.server)
 
     // ─────────────────────────────────────────────────────────────
-    // LiteRT (1.2.0) - NPU Inference
+    // Nexa SDK (GGUF + NPU)
     // ─────────────────────────────────────────────────────────────
-    implementation(libs.bundles.litert)
+    implementation("ai.nexa:core:0.0.22")
+
+    // ─────────────────────────────────────────────────────────────
+    // Google LiteRT-LM (on-device LLM inference)
+    // ─────────────────────────────────────────────────────────────
+    implementation(libs.litertlm.android)
+
 
     // ─────────────────────────────────────────────────────────────
     // Kotlinx Serialization
@@ -114,4 +129,10 @@ dependencies {
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.compose.bom))
     androidTestImplementation(libs.compose.ui.test.junit4)
+}
+
+java {
+    toolchain {
+        languageVersion.set(JavaLanguageVersion.of(17))
+    }
 }

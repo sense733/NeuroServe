@@ -3,22 +3,24 @@ package com.neuroserve.engine
 import javax.inject.Inject
 import javax.inject.Singleton
 
-/**
- * 推理引擎选择器。Fallback 策略：NPU → GPU → CPU
- */
 @Singleton
 class EngineSelector @Inject constructor(
-    private val liteRTEngine: LiteRTEngine,
-    private val mlcEngine: MLCEngine,
-    private val llamaCppEngine: LlamaCppEngine
+    engines: Set<@JvmSuppressWildcards InferenceEngine>
 ) {
 
-    private val engines: List<InferenceEngine> = listOf(
-        liteRTEngine, mlcEngine, llamaCppEngine
-    ).sortedBy { it.priority }
+    private val engines: List<InferenceEngine> = engines.sortedBy { it.priority }
 
     var currentEngine: InferenceEngine? = null
         private set
+
+    fun selectEngineForModel(meta: ModelMeta): InferenceEngine {
+        val engine = when (meta.format) {
+            ModelFormat.LITERTLM -> engines.first { it is LiteRtEngine }
+            ModelFormat.GGUF, ModelFormat.NEXA -> engines.first { it is NexaEngine }
+        }
+        currentEngine = engine
+        return engine
+    }
 
     suspend fun selectBestEngine(): InferenceEngine {
         for (engine in engines) {

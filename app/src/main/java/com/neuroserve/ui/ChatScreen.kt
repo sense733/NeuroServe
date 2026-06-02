@@ -18,14 +18,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.stringResource
 import com.neuroserve.R
 import com.neuroserve.service.InferenceService
 
 @Composable
 fun ChatScreen(
-    viewModel: MainViewModel,
+    viewModel: ChatViewModel,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -40,7 +40,7 @@ fun ChatScreen(
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
-                viewModel.updateServiceStatus()
+                // Do nothing since we removed updateServiceStatus from ChatViewModel
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)

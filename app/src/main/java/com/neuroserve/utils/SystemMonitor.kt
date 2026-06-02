@@ -5,14 +5,22 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.os.BatteryManager
+import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class SystemMonitor @Inject constructor() {
+class SystemMonitor @Inject constructor(
+    @ApplicationContext private val context: Context
+) {
 
     /** PSS 内存信息 (包含 Native Heap - 模型加载后的真实占用) */
     data class AppMemoryInfo(
@@ -38,9 +46,24 @@ class SystemMonitor @Inject constructor() {
 
     private var batteryReceiver: BroadcastReceiver? = null
     private var isReceiverRegistered = false
+    private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+
+    init {
+        registerBatteryReceiver()
+        startMemoryMonitoring()
+    }
+
+    private fun startMemoryMonitoring() {
+        scope.launch {
+            while (true) {
+                refreshAppMemoryInfo()
+                delay(2000)
+            }
+        }
+    }
 
     /** Debug.getMemoryInfo() 是较重操作，不要高频调用 */
-    fun refreshAppMemoryInfo() {
+    private fun refreshAppMemoryInfo() {
         try {
             val memoryInfo = android.os.Debug.MemoryInfo()
             android.os.Debug.getMemoryInfo(memoryInfo)
@@ -54,7 +77,7 @@ class SystemMonitor @Inject constructor() {
         }
     }
 
-    fun registerBatteryReceiver(context: Context) {
+    private fun registerBatteryReceiver() {
         if (isReceiverRegistered) return
 
         batteryReceiver = object : BroadcastReceiver() {
@@ -70,18 +93,6 @@ class SystemMonitor @Inject constructor() {
             isReceiverRegistered = true
         } catch (e: Exception) {
             android.util.Log.e("SystemMonitor", "Failed to register battery receiver", e)
-        }
-    }
-
-    fun unregisterBatteryReceiver(context: Context) {
-        if (!isReceiverRegistered || batteryReceiver == null) return
-
-        try {
-            context.unregisterReceiver(batteryReceiver)
-            isReceiverRegistered = false
-            batteryReceiver = null
-        } catch (e: Exception) {
-            android.util.Log.e("SystemMonitor", "Failed to unregister battery receiver", e)
         }
     }
 }
