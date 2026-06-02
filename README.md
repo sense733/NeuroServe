@@ -1,78 +1,13 @@
 # NeuroServe
 
-![Android](https://img.shields.io/badge/Platform-Android-green)
-![NPU](https://img.shields.io/badge/Acceleration-Snapdragon%20NPU-blue)
-![Status](https://img.shields.io/badge/Status-WIP-orange)
-![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)
+> **Everything Local. No Cloud.**
 
-**English** | [简体中文](README_zh-CN.md)
+NeuroServe 是一个为安卓生态设计的底层 AI 推理基础设施。它将你的移动设备转变为高性能、隐私安全的本地推理服务器。
 
-**Android On-Device LLM Server**
+### 核心亮点
+- **Native**: 专为安卓架构优化，榨干 NPU/GPU 算力。
+- **Standard**: 完整的 OpenAI 兼容接口，无缝对接现有生态。
+- **Private**: 绝对的物理隔绝，数据资产永不出端。
 
-NeuroServe is a system-level AI inference service running on Android. It leverages the **Snapdragon 8 Elite (SM8750) Hexagon NPU** via Google's **LiteRT** (formerly TensorFlow Lite) to provide local Large Language Model (LLM) inference. It exposes an **OpenAI-compatible HTTP API**, allowing other applications (like Chatbox, Tasker, or Obsidian) to use on-device AI capabilities without relying on cloud services.
-
-## Key Features
-
-- [✔] **Qualcomm Hexagon NPU Acceleration**: Powered by LiteRT and QNN Delegate for high-performance, low-power inference.
-- [✔] **OpenAI-compatible API**: Standard `/v1/chat/completions` endpoint with **SSE Streaming** support.
-- [✔] **Background Service**: Runs as a foreground service with **WakeLock** to ensure uninterrupted inference even when the screen is off.
-- [✔] **Internationalization**: Full English and Simplified Chinese support.
-- [ ] **Multi-Model Support**: (Planned) Hot-swapping different quantized models.
-- [ ] **Multi-Modal**: (Planned) Whisper ASR and Stable Diffusion image generation.
-
-## Tech Stack
-
-*   **Language**: Kotlin
-*   **UI Framework**: Jetpack Compose (Material3)
-*   **Server Engine**: Ktor Server (Netty)
-*   **Dependency Injection**: Hilt
-*   **Inference Engine**: LiteRT (Google AI Edge) + QNN
-
-## Getting Started
-
-### Prerequisites
-
-*   **Android Studio**: Ladybug Feature Drop or newer (recommended).
-*   **Device**: Android device with Qualcomm Snapdragon SoC (8 Elite recommended for NPU acceleration).
-
-### Compilation
-
-1.  Clone this repository.
-2.  Open in Android Studio.
-3.  Sync Gradle project.
-4.  Build and Run on your device.
-
-### Importing Models
-
-NeuroServe requires **.tflite** models (dynamic quantized or specific NPU quantized).
-
-**Method 1: In-App Import (Recommended)**
-1.  Launch NeuroServe.
-2.  Go to the **Model Hub** tab.
-3.  Click the **+ (Import)** button.
-4.  Select a `.tflite` model file from your device storage.
-5.  The model will be copied to the app's internal storage and ready for use.
-
-**Method 2: Manual Placement**
-*   Copy your `.tflite` models to the app's internal files directory: `/data/data/com.neuroserve/files/models/` (Root access required).
-
-## API Usage
-
-Once the server is running (default port 8000), you can make requests:
-
-```bash
-curl http://<DEVICE_IP>:8000/v1/chat/completions \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer <API_KEY>" \
-  -d '{
-    "model": "qwen2.5-3b",
-    "messages": [{"role": "user", "content": "Hello!"}],
-    "stream": true
-  }'
-```
-
-## Disclaimer
-
-## License
-
-This project is licensed under the Apache License 2.0. See the [LICENSE](LICENSE) file for details.
+### 路线图 & 状态
+目前处于初版迭代中。核心支持 LiteRT (TFLite) 引擎及 Qualcomm 硬件加速。
